@@ -19,6 +19,8 @@ public class PageDownloader implements Runnable
 {
     private final WebPage mainPage;
 
+    private static final String DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
+
     @Override
     public void run()
     {
@@ -30,7 +32,7 @@ public class PageDownloader implements Runnable
 
             String lastModifiedStr = connection.response().header("Last-Modified");
 
-            SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
+            SimpleDateFormat format = new SimpleDateFormat(DATE_FORMAT);
             Date lastModifiedDate;
 
             try {
