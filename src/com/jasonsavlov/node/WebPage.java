@@ -5,7 +5,7 @@ import java.io.Serializable;
 public class WebPage implements Serializable
 {
     private final String pageURL;
-    private String pageBodyText;
+    private transient String pageBodyText;
     private long lastModifiedTime = 0L;
 
 
