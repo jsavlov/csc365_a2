@@ -1,11 +1,13 @@
 package com.jasonsavlov.node;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class WebPage implements Serializable
 {
     private final String pageURL;
     private transient String pageBodyText;
+    private transient List<String> listOfLinks;
     private long lastModifiedTime = 0L;
 
 
@@ -37,5 +39,15 @@ public class WebPage implements Serializable
     public void setPageBodyText(String pageBodyText)
     {
         this.pageBodyText = pageBodyText;
+    }
+
+    public List<String> getListOfLinks()
+    {
+        return listOfLinks;
+    }
+
+    public void setListOfLinks(List<String> listOfLinks)
+    {
+        this.listOfLinks = listOfLinks;
     }
 }

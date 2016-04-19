@@ -5,11 +5,15 @@ import com.jasonsavlov.node.WebPage;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class PageDownloader implements Runnable
 {
@@ -37,8 +41,19 @@ public class PageDownloader implements Runnable
                 lastModifiedDate = new Date();
             }
 
+            Elements links = document.select("a");
+            List<String> linkStrList = new ArrayList<String>();
+            for (Element e : links) {
+                String linkURL = e.attr("abs:href");
+                if (!linkURL.startsWith("http")) {
+                    continue;
+                }
+                linkStrList.add(linkURL);
+            }
+
             mainPage.setPageBodyText(document.body().text());
             mainPage.setLastModifiedTime(lastModifiedDate.getTime());
+            mainPage.setListOfLinks(linkStrList);
 
             System.out.println("Page " + mainPage.getPageURL() + ": " + Long.toString(mainPage.getLastModifiedTime()));
         } catch (IOException e) {
