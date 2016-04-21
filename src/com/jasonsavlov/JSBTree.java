@@ -24,9 +24,6 @@ public class JSBTree
     private ReadWriteLock rwlock = new ReentrantReadWriteLock();
 
 
-
-
-
     private static final class Node
     {
         private int child_count; // count of children

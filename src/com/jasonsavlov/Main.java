@@ -4,9 +4,13 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
 
 public class Main
 {
+
+    static final ForkJoinPool mainDownloadPool = new ForkJoinPool();
+
     public static void main(String[] args) {
         // Load in the web pages
 
@@ -25,6 +29,8 @@ public class Main
         InputStream urlInputStream;
         InputStreamReader urlISReader;
         List<WebPage> urlList = new ArrayList<WebPage>();
+        List<PageDownloader> downloaderThreads = new ArrayList<PageDownloader>();
+        List<Future> futureList = new ArrayList<Future>();
 
         try {
             urlInputStream = new FileInputStream(urlListFile);
@@ -36,6 +42,7 @@ public class Main
             while ((line = urlReader.readLine()) != null) {
                 WebPage page = new WebPage(line);
                 urlList.add(page);
+                downloaderThreads.add(new PageDownloader(page));
             }
 
         } catch (IOException ex) {
@@ -43,9 +50,18 @@ public class Main
             System.exit(1);
         }
 
-        List<Thread> downloaderThreads = new ArrayList<Thread>();
+        for (PageDownloader pd : downloaderThreads) {
+            mainDownloadPool.submit(pd);
+        }
 
-        for (WebPage workingPage : urlList) {
+        try {
+            mainDownloadPool.awaitTermination(60L, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
+       /* for (WebPage workingPage : urlList) {
             Thread nThread = new Thread(new PageDownloader(workingPage));
             downloaderThreads.add(nThread);
             nThread.start();
@@ -56,9 +72,8 @@ public class Main
                 t.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                System.exit(1);
             }
-        }
+        }*/
 
         File cacheFile = new File(cacheFilePath);
 

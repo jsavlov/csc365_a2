@@ -13,6 +13,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.RunnableFuture;
 
 public class PageDownloader implements Runnable
 {
@@ -27,7 +29,18 @@ public class PageDownloader implements Runnable
         Connection connection;
         try {
             connection = Jsoup.connect(mainPage.getPageURL());
-            document = connection.get();
+
+            try {
+                document = connection.get();
+            } catch (org.jsoup.HttpStatusException ex) {
+                System.out.println("HttpStatusException. Page: " + mainPage.toString());
+                //ex.printStackTrace();
+                return;
+            } catch (org.jsoup.UnsupportedMimeTypeException ex) {
+                System.out.println("UnsupportedMimeTypeException. Page: " + mainPage.toString());
+                //ex.printStackTrace();
+                return;
+            }
 
             String lastModifiedStr = connection.response().header("Last-Modified");
 
@@ -42,14 +55,16 @@ public class PageDownloader implements Runnable
                 lastModifiedDate = new Date();
             }
 
+
+
             Elements links = document.select("a");
-            List<String> linkStrList = new ArrayList<String>();
+            List<WebPage> linkList = new ArrayList<WebPage>();
             for (Element e : links) {
                 String linkURL = e.attr("abs:href");
                 if (!linkURL.startsWith("http")) {
                     continue;
                 }
-                linkStrList.add(linkURL);
+                linkList.add(new WebPage(linkURL, mainPage.getMainTree()));
             }
 
             // get the words from the body
@@ -72,7 +87,12 @@ public class PageDownloader implements Runnable
 
             mainPage.setPageBodyText(parsedBody);
             mainPage.setLastModifiedTime(lastModifiedDate.getTime());
-            mainPage.setListOfLinks(linkStrList);
+            mainPage.setListOfLinks(linkList);
+            //mainPage.crawlListOfLinks();
+
+            for (WebPage wp : linkList) {
+                Main.mainDownloadPool.submit(new PageDownloader(wp));
+            }
 
             System.out.println("Page " + mainPage.getPageURL() + ": " + Long.toString(mainPage.getLastModifiedTime()));
         } catch (IOException e) {
