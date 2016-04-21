@@ -30,7 +30,6 @@ public class Main
         InputStreamReader urlISReader;
         List<WebPage> urlList = new ArrayList<WebPage>();
         List<PageDownloader> downloaderThreads = new ArrayList<PageDownloader>();
-        List<Future> futureList = new ArrayList<Future>();
 
         try {
             urlInputStream = new FileInputStream(urlListFile);
@@ -60,20 +59,6 @@ public class Main
             e.printStackTrace();
         }
 
-
-       /* for (WebPage workingPage : urlList) {
-            Thread nThread = new Thread(new PageDownloader(workingPage));
-            downloaderThreads.add(nThread);
-            nThread.start();
-        }
-
-        for (Thread t : downloaderThreads) {
-            try {
-                t.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }*/
 
         File cacheFile = new File(cacheFilePath);
 

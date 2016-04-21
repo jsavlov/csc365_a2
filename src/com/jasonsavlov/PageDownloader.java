@@ -88,7 +88,6 @@ public class PageDownloader implements Runnable
             mainPage.setPageBodyText(parsedBody);
             mainPage.setLastModifiedTime(lastModifiedDate.getTime());
             mainPage.setListOfLinks(linkList);
-            //mainPage.crawlListOfLinks();
 
             for (WebPage wp : linkList) {
                 Main.mainDownloadPool.submit(new PageDownloader(wp));

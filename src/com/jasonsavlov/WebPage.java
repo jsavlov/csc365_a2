@@ -60,30 +60,6 @@ public class WebPage implements Serializable
         this.listOfLinks = listOfLinks;
     }
 
-    public void crawlListOfLinks()
-    {
-        if (listOfLinks == null) {
-            return;
-        }
-
-        List<Thread> downloaderThreads = new ArrayList<Thread>();
-
-        for (WebPage workingPage : listOfLinks) {
-            Thread nThread = new Thread(new PageDownloader(workingPage));
-            downloaderThreads.add(nThread);
-            nThread.start();
-        }
-
-        for (Thread t : downloaderThreads) {
-            try {
-                t.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
-        }
-    }
-
     public JSBTree getMainTree()
     {
         return mainTree;
