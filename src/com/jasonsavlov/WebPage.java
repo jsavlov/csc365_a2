@@ -1,4 +1,4 @@
-package com.jasonsavlov.node;
+package com.jasonsavlov;
 
 import java.io.Serializable;
 import java.util.List;
@@ -9,11 +9,13 @@ public class WebPage implements Serializable
     private transient String pageBodyText;
     private transient List<String> listOfLinks;
     private long lastModifiedTime = 0L;
+    private JSBTree mainTree;
 
 
     public WebPage(String pageURL)
     {
         this.pageURL = pageURL;
+        this.mainTree = new JSBTree();
     }
 
     public long getLastModifiedTime()
@@ -49,5 +51,10 @@ public class WebPage implements Serializable
     public void setListOfLinks(List<String> listOfLinks)
     {
         this.listOfLinks = listOfLinks;
+    }
+
+    public JSBTree getMainTree()
+    {
+        return mainTree;
     }
 }

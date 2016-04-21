@@ -1,7 +1,6 @@
-package com.jasonsavlov.concurrent;
+package com.jasonsavlov;
 
 
-import com.jasonsavlov.node.WebPage;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -53,7 +52,25 @@ public class PageDownloader implements Runnable
                 linkStrList.add(linkURL);
             }
 
-            mainPage.setPageBodyText(document.body().text());
+            // get the words from the body
+            String parsedBody = document.body().text();
+
+            // split up the body
+            String[] words = parsedBody.split("\\s+");
+
+            // Get only alphanumeric words from the body, make all lowercase
+            for (int i = 0; i < words.length; i++) {
+                words[i] = words[i].replaceAll("[^a-zA-Z]", "").toLowerCase();
+            }
+
+            JSBTree tree = mainPage.getMainTree();
+
+            for (String s : words) {
+                tree.add(s);
+            }
+
+
+            mainPage.setPageBodyText(parsedBody);
             mainPage.setLastModifiedTime(lastModifiedDate.getTime());
             mainPage.setListOfLinks(linkStrList);
 

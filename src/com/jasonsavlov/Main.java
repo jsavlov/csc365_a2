@@ -1,8 +1,5 @@
 package com.jasonsavlov;
 
-import com.jasonsavlov.concurrent.PageDownloader;
-import com.jasonsavlov.node.WebPage;
-
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
