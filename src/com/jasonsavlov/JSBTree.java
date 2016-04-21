@@ -1,6 +1,4 @@
-package com.jasonsavlov.btree;
-
-import java.util.Comparator;
+package com.jasonsavlov;
 
 /**
  * JSBtree.java
@@ -11,7 +9,7 @@ import java.util.Comparator;
  * http://algs4.cs.princeton.edu/code/edu/princeton/cs/algs4/BTree.java
  */
 
-public class JSBTree<Key extends Comparable<Key>, Value>
+public class JSBTree
 {
 
     private static final int MAX_CHILDREN = 4;
@@ -67,7 +65,7 @@ public class JSBTree<Key extends Comparable<Key>, Value>
         return height;
     }
 
-    private Value search(Node x, Key key, int ht)
+    private WordNode search(Node x, String key, int ht)
     {
         Entry[] children = x.children;
 
@@ -75,7 +73,7 @@ public class JSBTree<Key extends Comparable<Key>, Value>
         if (ht == 0) {
             for (int i = 0; i < x.child_count; i++) {
                 if (equal(key, children[i].key)) {
-                    return (Value) children[i].value;
+                    return (WordNode) children[i].value;
                 }
             }
         }
@@ -93,7 +91,7 @@ public class JSBTree<Key extends Comparable<Key>, Value>
         return null;
     }
 
-    public Value get(Key k)
+    public WordNode get(String k)
     {
         if (k == null)
             throw new NullPointerException("The key must not be null.");
@@ -101,7 +99,19 @@ public class JSBTree<Key extends Comparable<Key>, Value>
         return search(root, k, height);
     }
 
-    public void put(Key key, Value value)
+    public void add(String key)
+    {
+        WordNode existing = get(key);
+        if (existing != null) {
+            // It already exists.. increment the frequency and move on
+            existing.frequency++;
+            return;
+        }
+
+        put(key, new WordNode(key));
+    }
+
+    public void put(String key, WordNode value)
     {
         if (key == null) {
             throw new NullPointerException("The key must not be null.");
@@ -120,7 +130,7 @@ public class JSBTree<Key extends Comparable<Key>, Value>
         height++;
     }
 
-    private Node insert(Node node, Key key, Value value, int ht)
+    private Node insert(Node node, String key, WordNode value, int ht)
     {
         int i;
         Entry e = new Entry(key, value, null);
