@@ -10,7 +10,7 @@ public class WebPage implements Serializable
     private transient String pageBodyText;
     private transient List<WebPage> listOfLinks;
     private long lastModifiedTime = 0L;
-    private JSBTree mainTree;
+    private transient JSBTree mainTree;
 
 
     public WebPage(String pageURL)
@@ -63,5 +63,11 @@ public class WebPage implements Serializable
     public JSBTree getMainTree()
     {
         return mainTree;
+    }
+
+    @Override
+    public String toString()
+    {
+        return this.pageURL;
     }
 }

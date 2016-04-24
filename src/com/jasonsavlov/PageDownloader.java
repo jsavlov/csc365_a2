@@ -13,8 +13,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.RecursiveAction;
-import java.util.concurrent.RunnableFuture;
 
 public class PageDownloader implements Runnable
 {
@@ -40,7 +38,13 @@ public class PageDownloader implements Runnable
                 System.out.println("UnsupportedMimeTypeException. Page: " + mainPage.toString());
                 //ex.printStackTrace();
                 return;
+            } catch (java.net.SocketTimeoutException ex) {
+                System.out.println("SocketTimeoutException. Page: " + mainPage.toString());
+                // TODO: add page timeout handling
+                return;
             }
+
+            // Are there any other exceptions to be handled with network IO?
 
             String lastModifiedStr = connection.response().header("Last-Modified");
 

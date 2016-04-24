@@ -8,8 +8,8 @@ import java.util.concurrent.*;
 
 public class Main
 {
-
-    static final ForkJoinPool mainDownloadPool = new ForkJoinPool();
+    private static final int NUMBER_OF_THREADS = Runtime.getRuntime().availableProcessors();
+    static final ExecutorService mainDownloadPool = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
 
     public static void main(String[] args) {
         // Load in the web pages
@@ -54,6 +54,7 @@ public class Main
         }
 
         try {
+            // TODO: Make the timeout long a constant. Maybe change the units to something more flexible?
             mainDownloadPool.awaitTermination(60L, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
