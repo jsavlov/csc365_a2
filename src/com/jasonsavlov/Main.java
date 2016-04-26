@@ -71,8 +71,6 @@ public class Main
             e.printStackTrace();
         }
 
-        System.out.println("Testing list to words...");
-        List<WordNode> testListOfWords = urlList.get(0).getMainTree().treeToList();
 
 
         File cacheFile = new File(cacheFilePath);
