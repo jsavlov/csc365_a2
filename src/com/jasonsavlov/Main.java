@@ -10,6 +10,7 @@ public class Main
 {
     private static final int NUMBER_OF_THREADS = Runtime.getRuntime().availableProcessors() * 2;
     static final ExecutorService mainDownloadPool = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+    static final JSHashTable urlHashTable = new JSHashTable();
 
     // Thread timeout in seconds
     private static final long DOWNLOAD_THREAD_TIMEOUT = 60L;

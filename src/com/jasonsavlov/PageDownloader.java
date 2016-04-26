@@ -43,6 +43,7 @@ public class PageDownloader implements Runnable
                 // TODO: add page timeout handling
                 return;
             }
+            Main.urlHashTable.add(mainPage.getPageURL(), mainPage);
 
             // Are there any other exceptions to be handled with network IO?
 
@@ -65,6 +66,7 @@ public class PageDownloader implements Runnable
             List<WebPage> linkList = new ArrayList<WebPage>();
             for (Element e : links) {
                 String linkURL = e.attr("abs:href");
+                linkURL = linkURL.split("#")[0];
                 if (!linkURL.startsWith("http")) {
                     continue;
                 }
@@ -89,11 +91,15 @@ public class PageDownloader implements Runnable
             }
 
 
+
             mainPage.setPageBodyText(parsedBody);
             mainPage.setLastModifiedTime(lastModifiedDate.getTime());
             mainPage.setListOfLinks(linkList);
 
             for (WebPage wp : linkList) {
+                if (Main.urlHashTable.contains(wp.getPageURL())) {
+                    continue;
+                }
                 Main.mainDownloadPool.submit(new PageDownloader(wp));
             }
 
