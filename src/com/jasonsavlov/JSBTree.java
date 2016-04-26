@@ -264,24 +264,28 @@ public class JSBTree
             Entry[] children = currentNode.children;
             List<TreeToListTask> nextNodes = new ArrayList<>();
 
+            // Process the children
             for (int i = 0; i < currentNode.child_count; i++)
             {
                 Entry e = children[i];
                 if (e.next != null) {
+                    // Go to the child node
                     TreeToListTask nextTask = new TreeToListTask(workingList, e.next);
                     nextNodes.add(nextTask);
                     nextTask.fork();
                 } else {
+                    // add the word to the list
                     workingList.add((WordNode) e.value);
                 }
             }
 
+            // Wait for any child nodes to finish up
             for (TreeToListTask task : nextNodes)
             {
                 task.join();
             }
 
-
+            // Return the list
             return workingList;
         }
     }
