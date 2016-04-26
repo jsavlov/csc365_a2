@@ -1,5 +1,6 @@
 package com.jasonsavlov;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -7,14 +8,14 @@ import java.util.List;
 /**
  * Created by jason on 2/23/16.
  */
-public class JSHashTable
+public class JSHashTable implements Serializable
 {
     // The default bucket count, in case one isn't provided in the constructor
     public static final int DEFAULT_BUCKET_COUNT = 128;
 
     // Instance variables
-    private int entry_count = 0;
-    private int bucket_count = 0;
+    private volatile int entry_count = 0;
+    private volatile int bucket_count = 0;
 
     // buckets for Nodes
     private Node[] buckets;

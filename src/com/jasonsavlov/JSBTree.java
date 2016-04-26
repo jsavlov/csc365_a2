@@ -1,5 +1,11 @@
 package com.jasonsavlov;
 
+import com.sun.istack.internal.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -225,6 +231,60 @@ public class JSBTree
         }
     }
 
+    // A method that returns a List of WordNode objects
+    public List<WordNode> treeToList()
+    {
+        ForkJoinPool workingPool = new ForkJoinPool();
+        try {
+            mLock.lock();
+            List<WordNode> listToReturn = new ArrayList<>();
+            TreeToListTask mainTask = new TreeToListTask(listToReturn, root);
+            return workingPool.invoke(mainTask);
+        } finally {
+            mLock.unlock();
+        }
+    }
+
+    private final class TreeToListTask extends RecursiveTask<List<WordNode>>
+    {
+        private final List<WordNode> workingList;
+        private final Node assignedNode;
+
+        private TreeToListTask(@NotNull List<WordNode> list,
+                               @NotNull Node node)
+        {
+            this.workingList = list;
+            this.assignedNode = node;
+        }
+
+        @Override
+        protected List<WordNode> compute()
+        {
+            Node currentNode = assignedNode;
+            Entry[] children = currentNode.children;
+            List<TreeToListTask> nextNodes = new ArrayList<>();
+
+            for (int i = 0; i < currentNode.child_count; i++)
+            {
+                Entry e = children[i];
+                if (e.next != null) {
+                    TreeToListTask nextTask = new TreeToListTask(workingList, e.next);
+                    nextNodes.add(nextTask);
+                    nextTask.fork();
+                } else {
+                    workingList.add((WordNode) e.value);
+                }
+            }
+
+            for (TreeToListTask task : nextNodes)
+            {
+                task.join();
+            }
+
+
+            return workingList;
+        }
+    }
 
     /*
         Helper comparison methods
