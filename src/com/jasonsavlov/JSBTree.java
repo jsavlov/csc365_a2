@@ -1,7 +1,7 @@
 package com.jasonsavlov;
 
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * JSBtree.java
@@ -21,7 +21,7 @@ public class JSBTree
     private int height;
     private int node_count;
 
-    private ReadWriteLock rwlock = new ReentrantReadWriteLock();
+    private final Lock mLock = new ReentrantLock();
 
 
     private static final class Node
@@ -62,20 +62,20 @@ public class JSBTree
     public int size()
     {
         try {
-            rwlock.readLock().lock();
+            mLock.lock();
             return node_count;
         } finally {
-            rwlock.readLock().unlock();
+            mLock.unlock();
         }
     }
 
     public int height()
     {
         try {
-            rwlock.readLock().lock();
+            mLock.lock();
             return height;
         } finally {
-            rwlock.readLock().unlock();
+            mLock.unlock();
         }
     }
 
@@ -84,7 +84,7 @@ public class JSBTree
         Entry[] children = x.children;
 
         try {
-            rwlock.readLock().lock();
+            mLock.lock();
             // Do we have an external node?
             if (ht == 0) {
                 for (int i = 0; i < x.child_count; i++) {
@@ -106,7 +106,7 @@ public class JSBTree
             // all else, return nothin'.
             return null;
         } finally {
-            rwlock.readLock().unlock();
+            mLock.unlock();
         }
     }
 
@@ -122,14 +122,14 @@ public class JSBTree
     {
         WordNode existing;
         try {
-            rwlock.readLock().lock();
+            mLock.lock();
             existing = get(key);
         } finally {
-            rwlock.readLock().unlock();
+            mLock.unlock();
         }
 
         try {
-            rwlock.writeLock().lock();
+            mLock.lock();
             if (existing != null) {
                 // It already exists.. increment the frequency and move on
                 existing.frequency++;
@@ -138,14 +138,14 @@ public class JSBTree
 
             put(key, new WordNode(key));
         } finally {
-            rwlock.writeLock().unlock();
+            mLock.unlock();
         }
     }
 
     public void put(String key, WordNode value)
     {
         try {
-            rwlock.writeLock().lock();
+            mLock.lock();
             if (key == null) {
                 throw new NullPointerException("The key must not be null.");
             }
@@ -162,14 +162,14 @@ public class JSBTree
             root = t;
             height++;
         } finally {
-            rwlock.writeLock().unlock();
+            mLock.unlock();
         }
     }
 
     private Node insert(Node node, String key, WordNode value, int ht)
     {
         try {
-            rwlock.writeLock().lock();
+            mLock.lock();
             int i;
             Entry e = new Entry(key, value, null);
 
@@ -206,14 +206,14 @@ public class JSBTree
             else
                 return split(node);
         } finally {
-            rwlock.writeLock().unlock();
+            mLock.unlock();
         }
     }
 
     private Node split(Node n)
     {
         try {
-            rwlock.writeLock().lock();
+            mLock.lock();
             Node t = new Node(MAX_CHILDREN / 2);
             n.child_count = MAX_CHILDREN / 2;
             for (int i = 0; i < MAX_CHILDREN / 2; i++) {
@@ -221,7 +221,7 @@ public class JSBTree
             }
             return t;
         } finally {
-            rwlock.writeLock().unlock();
+            mLock.unlock();
         }
     }
 

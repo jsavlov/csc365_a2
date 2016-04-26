@@ -8,11 +8,12 @@ import java.util.concurrent.*;
 
 public class Main
 {
-    private static final int NUMBER_OF_THREADS = Runtime.getRuntime().availableProcessors();
+    private static final int NUMBER_OF_THREADS = Runtime.getRuntime().availableProcessors() * 2;
     static final ExecutorService mainDownloadPool = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
 
     // Thread timeout in seconds
     private static final long DOWNLOAD_THREAD_TIMEOUT = 60L;
+    private static final TimeUnit DOWNLOAD_THREAD_TIMEOUT_UNIT = TimeUnit.SECONDS;
 
     public static void main(String[] args) {
         // Load in the web pages
@@ -57,7 +58,14 @@ public class Main
         }
 
         try {
-            mainDownloadPool.awaitTermination(DOWNLOAD_THREAD_TIMEOUT, TimeUnit.SECONDS);
+            if (!mainDownloadPool.awaitTermination(DOWNLOAD_THREAD_TIMEOUT, DOWNLOAD_THREAD_TIMEOUT_UNIT))
+            {
+                // if we reach this point, it timed out before completing the downloading/crawling
+                // operation. handle it accordingly
+                System.out.println("mainDownloadPool timed out. Timeout set to " + DOWNLOAD_THREAD_TIMEOUT + " " + DOWNLOAD_THREAD_TIMEOUT_UNIT);
+                mainDownloadPool.shutdownNow();
+            }
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
