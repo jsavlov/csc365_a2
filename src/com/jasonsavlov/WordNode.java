@@ -10,14 +10,20 @@ import java.nio.charset.StandardCharsets;
 public final class WordNode
 {
     int frequency;
-    String value;
+    final String value;
 
-    private final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
+    private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
     public WordNode(String value)
     {
         this.frequency = 1;
         this.value = value;
+    }
+
+    public WordNode(String value, int initalFrequency)
+    {
+        this.value = value;
+        this.frequency = initalFrequency;
     }
 
     public ByteBuffer getSerializedNode()
@@ -57,5 +63,53 @@ public final class WordNode
 
         // Return the buffer
         return bufferToReturn;
+    }
+
+    public static WordNode nodeFromBytes(ByteBuffer buffer)
+    {
+
+        buffer.rewind();
+
+        for (int i = 0; i < 3; i++)
+        {
+            byte b = buffer.get();
+            if (b != 10) throw new InvalidByteSequenceException("The byte sequence of the node is invalid.");
+        }
+
+        int lengthOfValue = buffer.getInt();
+
+        byte[] rawValueBytes = new byte[lengthOfValue];
+        buffer.get(rawValueBytes);
+
+        int frequency = buffer.getInt();
+
+        for (int i = 0; i < 3; i++)
+        {
+            byte b = buffer.get();
+            if (b != 1) throw new InvalidByteSequenceException("The byte sequence of the node is invalid.");
+        }
+
+        String valueStr = new String(rawValueBytes, DEFAULT_CHARSET);
+
+        return new WordNode(valueStr, frequency);
+    }
+
+    static final class InvalidByteSequenceException extends RuntimeException
+    {
+
+        InvalidByteSequenceException(String msg)
+        {
+            super(msg);
+        }
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        WordNode wn = (WordNode) obj;
+        boolean valEqual = wn.value.equals(this.value);
+        boolean freqEqual = wn.frequency == this.frequency;
+
+        return valEqual && freqEqual;
     }
 }
