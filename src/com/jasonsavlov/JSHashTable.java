@@ -21,7 +21,7 @@ public class JSHashTable implements Serializable
     private Node[] buckets;
 
     // Internal Node class used as buckets for maintaining word frequency
-    private static class Node
+    private static class Node implements Serializable
     {
         String key;
         WebPage value;

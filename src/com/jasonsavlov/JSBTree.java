@@ -2,10 +2,11 @@ package com.jasonsavlov;
 
 import com.sun.istack.internal.NotNull;
 
+import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -245,6 +246,64 @@ public class JSBTree
         }
     }
 
+    public ByteArrayOutputStream serializeTree()
+    {
+        ForkJoinPool serializePool = new ForkJoinPool();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        SerializeTreeTask rootTask = new SerializeTreeTask(this.root, out);
+
+        return serializePool.invoke(rootTask);
+    }
+
+    public static JSBTree getTreeFromFile(File file) throws FileNotFoundException, IOException, InterruptedException
+    {
+        JSBTree tree = new JSBTree();
+        byte[] serializedTree = new byte[(int) file.length()];
+        final int padding = 14;
+        final byte[] initialBytes = {10, 10, 10};
+        final byte[] terminatingBytes = {1, 1, 1};
+
+        DataInputStream dis = new DataInputStream(new FileInputStream(file));
+        dis.readFully(serializedTree);
+        ByteArrayInputStream byteInput = new ByteArrayInputStream(serializedTree);
+
+        ExecutorService pool = Executors.newFixedThreadPool(Main.NUMBER_OF_THREADS);
+
+
+        int currentIndex = 0;
+        while (dis.available() > 0 || currentIndex == -1)
+        {
+            byteInput.mark(0);
+
+            byteInput.skip(3);
+            byte[] rawLengthBytes = new byte[4];
+
+            byteInput.read(rawLengthBytes);
+            ByteBuffer intBuf = ByteBuffer.wrap(rawLengthBytes);
+            int valueLength = intBuf.getInt();
+
+            byteInput.reset();
+            byte[] rawNodeBytes = new byte[valueLength + padding];
+            currentIndex += byteInput.read(rawNodeBytes);
+            ByteBuffer byteBuffer = ByteBuffer.wrap(rawNodeBytes);
+
+            TreeFromFileTask fromFileTask = new TreeFromFileTask(tree, byteBuffer);
+            pool.submit(fromFileTask);
+        }
+
+        long POOL_TIMEOUT = 3600L; // Pool timeout time in seconds
+
+        if (!pool.awaitTermination(POOL_TIMEOUT, TimeUnit.SECONDS))
+        {
+            System.out.println("Tree deserialization timed out. Time out set to " + POOL_TIMEOUT + " " + TimeUnit.SECONDS);
+        }
+        else System.out.println("Tree deserialization complete.");
+
+
+        return tree;
+    }
+
     private final class TreeToListTask extends RecursiveTask<List<WordNode>>
     {
         private final List<WordNode> workingList;
@@ -287,6 +346,88 @@ public class JSBTree
 
             // Return the list
             return workingList;
+        }
+    }
+
+    private final class SerializeTreeTask extends RecursiveTask<ByteArrayOutputStream>
+    {
+        private final Node mainNode;
+        private final ByteArrayOutputStream workingStream;
+
+        private SerializeTreeTask(@NotNull Node mainNode,
+                                  @NotNull ByteArrayOutputStream workingStream)
+        {
+            this.mainNode = mainNode;
+            this.workingStream = workingStream;
+        }
+
+        @Override
+        protected ByteArrayOutputStream compute()
+        {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            Node assignedNode = this.mainNode;
+            Entry[] nodeChildren = assignedNode.children;
+            List<SerializeTreeTask> nextNodes = new ArrayList<>();
+
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+
+            for (int i = 0; i < assignedNode.child_count; i++)
+            {
+                Entry e = nodeChildren[i];
+                if (e.next != null) {
+                    SerializeTreeTask nextTask = new SerializeTreeTask(e.next, workingStream);
+                    nextNodes.add(nextTask);
+                    nextTask.fork();
+                } else {
+                    WordNode wn = (WordNode) e.value;
+                    ByteBuffer buf = wn.getSerializedNode();
+
+                    try {
+                        os.write(buf.array());
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+
+                }
+            }
+
+            for (SerializeTreeTask task : nextNodes)
+            {
+                try {
+                    task.join().writeTo(os);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                os.writeTo(outputStream);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return outputStream;
+        }
+    }
+
+    private static final class TreeFromFileTask implements Runnable
+    {
+        private JSBTree mainTree = null;
+        ByteBuffer mainBuffer = null;
+
+        TreeFromFileTask(@NotNull JSBTree mainTree,
+                                 @NotNull ByteBuffer mainBuffer)
+        {
+            this.mainTree = mainTree;
+            this.mainBuffer = mainBuffer;
+        }
+
+        @Override
+        public void run()
+        {
+            WordNode workingNode = WordNode.nodeFromBytes(mainBuffer);
+            String keyVal = workingNode.value;
+            mainTree.put(keyVal, workingNode);
         }
     }
 
