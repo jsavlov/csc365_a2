@@ -131,12 +131,7 @@ public class JSBTree
         try {
             mLock.lock();
             existing = get(key);
-        } finally {
-            mLock.unlock();
-        }
 
-        try {
-            mLock.lock();
             if (existing != null) {
                 // It already exists.. increment the frequency and move on
                 existing.frequency++;
