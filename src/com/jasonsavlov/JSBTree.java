@@ -4,8 +4,7 @@ import com.sun.istack.internal.NotNull;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -251,49 +250,189 @@ public class JSBTree
         return serializePool.invoke(rootTask);
     }
 
-    public static JSBTree getTreeFromFile(File file) throws FileNotFoundException, IOException, InterruptedException
+    // Our set of initial bytes
+    static final byte[] initialBytes = {1, 2, 3, 4, 5, 6, 7};
+
+    // Our set of terminating bytes
+    static final byte[] terminatingBytes = {7, 6, 5, 4, 3, 2, 1};
+
+    // Our set of tree separating bytes
+    static final byte[] treeSeparatingBytes = {-2, 0, -2};
+
+    // Our set of bytes that separate the url bytes from the tree bytes
+    static final byte[] urlSeparatingBytes = {2, 4, 6, 8};
+
+    public static final ByteArrayOutputStream serializeBTrees(List<WebPage> listOfPages, File file) throws IOException
+    {
+        // Create the output stream
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DataOutputStream dataOut = new DataOutputStream(new FileOutputStream(file));
+
+
+        // Add the bytes to the output stream
+        dataOut.write(initialBytes);
+        ByteBuffer buf;
+
+        // The loop where the action happens
+        for (WebPage workingPage : listOfPages)
+        {
+            String pageUrl = workingPage.getPageURL();
+            //int pageURL_len = pageUrl.length();
+            //dataOut.writeInt(pageURL_len);
+            //buf = ByteBuffer.allocate(4 + pageURL_len);
+            //buf.putInt(pageURL_len);
+            //buf.put(pageUrl.getBytes());
+            //out.write(buf.array());
+
+            dataOut.writeUTF(pageUrl);
+
+            ByteArrayOutputStream treeStream = workingPage.getMainTree().serializeTree();
+            int treeSize = treeStream.toByteArray().length;
+            dataOut.writeInt(treeSize);
+            //buf = ByteBuffer.allocate(4 + treeSize);
+            //buf.putInt(treeSize);
+            //out.write(buf.array());
+            //treeStream.writeTo(dataOut);
+            dataOut.write(treeStream.toByteArray());
+            dataOut.write(treeSeparatingBytes);
+        }
+
+        // Finally, write the terminating bytes
+        dataOut.write(terminatingBytes);
+        return out;
+    }
+
+    public static final Map<String, JSBTree> generateTreesFromFile(File file) throws IOException
+    {
+        long current_pos = 0L; // internal position tracker to keep track of position during traversal
+        Map<String, JSBTree> map = new HashMap<>();
+        DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
+
+        byte[] initialByteCheck = new byte[initialBytes.length];
+        in.read(initialByteCheck);
+        if (!Arrays.equals(initialByteCheck, initialBytes)) {
+            throw new RuntimeException("Check your tree bytes, bro");
+        }
+
+        for (;;)
+        {
+            // Check to see if we are terminating
+            byte[] terminatingCheck = new byte[terminatingBytes.length];
+            in.mark(0);
+
+            in.read(terminatingCheck);
+            if (Arrays.equals(terminatingCheck, terminatingBytes)) {
+                break;
+            }
+
+            in.reset();
+
+            String pageURL = in.readUTF();
+            int treeSize = in.readInt();
+            byte[] treeRawBytes = new byte[treeSize];
+            in.read(treeRawBytes);
+
+            try {
+                JSBTree generatedTree = JSBTree.getTreeFromData(treeRawBytes);
+                map.put(pageURL, generatedTree);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            byte[] treeSeparationCheck = new byte[treeSeparatingBytes.length];
+            in.read(treeSeparationCheck);
+            if (!Arrays.equals(treeSeparationCheck, treeSeparatingBytes)) {
+                throw new RuntimeException("Tree separating bytes aren't working correctly");
+            }
+        }
+
+
+        return map;
+    }
+
+    public static JSBTree getTreeFromData(byte[] data) throws FileNotFoundException, IOException, InterruptedException
     {
         JSBTree tree = new JSBTree();
-        byte[] serializedTree = new byte[(int) file.length()];
-        final int padding = 14;
-        final byte[] initialBytes = {10, 10, 10};
-        final byte[] terminatingBytes = {1, 1, 1};
+        //final int padding = 14;
+        final byte[] initialBytes = {41, 54, 99};
+        final byte[] terminatingBytes = {34, 36, 40};
 
-        DataInputStream dis = new DataInputStream(new FileInputStream(file));
-        dis.readFully(serializedTree);
-        ByteArrayInputStream byteInput = new ByteArrayInputStream(serializedTree);
+        //DataInputStream dataIn = new DataInputStream(new BufferedInputStream(new ByteArrayInputStream(data)));
+        DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(data));
+
 
         ExecutorService pool = Executors.newFixedThreadPool(Main.NUMBER_OF_THREADS);
+        //ForkJoinPool pool = new ForkJoinPool();
+        List<Future> futureList = new ArrayList<>();
+
+        while (dataIn.available() > 0) {
+
+            int size_cnt = 0;
+
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            byte[] initialByteCheck = new byte[initialBytes.length];
+
+            //dataIn.mark(4);
+            byte[] terminatingCheck = new byte[treeSeparatingBytes.length];
+            dataIn.read(terminatingCheck);
+            if (Arrays.equals(terminatingCheck, terminatingBytes)) {
+                break;
+            } else if (!Arrays.equals(terminatingCheck, initialBytes)) {
+                throw new RuntimeException("initialByteCheck failed.. bytes aren't matching up.");
+            } else {
+                buf.write(terminatingCheck);
+                size_cnt += 3;
+            }
+            //dataIn.reset();
 
 
-        int currentIndex = 0;
-        while (dis.available() > 0 || currentIndex == -1)
-        {
-            byteInput.mark(0);
+            /*
+            dataIn.read(initialByteCheck);
+            if (!Arrays.equals(initialByteCheck, initialBytes)) {
+                throw new RuntimeException("initialByteCheck failed.. bytes aren't matching up.");
+            } else {
+                buf.write(initialByteCheck);
+                size_cnt += 3;
+            }
+            */
 
-            byteInput.skip(3);
-            byte[] rawLengthBytes = new byte[4];
+            byte b = 0;
+            while ((b = dataIn.readByte()) != -1)
+            {
+                buf.write(b);
+                size_cnt++;
+                if (b == terminatingBytes[0]) {
+                    b = dataIn.readByte();
+                    buf.write(b);
+                    size_cnt++;
+                    if (b == terminatingBytes[1]) {
+                        b = dataIn.readByte();
+                        buf.write(b);
+                        size_cnt++;
+                        if (b == terminatingBytes[2]) {
+                            break;
+                        }
+                    }
+                }
+            }
+            //dataIn.reset();
+            byte[] total_bytes = new byte[size_cnt];
+            //dataIn.read(total_bytes);
 
-            byteInput.read(rawLengthBytes);
-            ByteBuffer intBuf = ByteBuffer.wrap(rawLengthBytes);
-            int valueLength = intBuf.getInt();
+            byte[] mbytes = buf.toByteArray();
 
-            byteInput.reset();
-            byte[] rawNodeBytes = new byte[valueLength + padding];
-            currentIndex += byteInput.read(rawNodeBytes);
-            ByteBuffer byteBuffer = ByteBuffer.wrap(rawNodeBytes);
+            //pool.execute(new TreeFromFileTask(tree, ByteBuffer.wrap(mbytes)));
+            futureList.add(pool.submit(new TreeFromFileTask(tree, ByteBuffer.wrap(mbytes))));
 
-            TreeFromFileTask fromFileTask = new TreeFromFileTask(tree, byteBuffer);
-            pool.submit(fromFileTask);
         }
 
-        long POOL_TIMEOUT = 3600L; // Pool timeout time in seconds
-
-        if (!pool.awaitTermination(POOL_TIMEOUT, TimeUnit.SECONDS))
-        {
-            System.out.println("Tree deserialization timed out. Time out set to " + POOL_TIMEOUT + " " + TimeUnit.SECONDS);
+        for (Future future : futureList) {
+            try {
+                future.get();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
         }
-        else System.out.println("Tree deserialization complete.");
 
 
         return tree;
@@ -376,7 +515,6 @@ public class JSBTree
                 } else {
                     WordNode wn = (WordNode) e.value;
                     ByteBuffer buf = wn.getSerializedNode();
-
                     try {
                         os.write(buf.array());
                     } catch (IOException ex) {

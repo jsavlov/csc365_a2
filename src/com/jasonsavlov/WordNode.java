@@ -26,13 +26,15 @@ public final class WordNode
         this.frequency = initalFrequency;
     }
 
+    // The sequence of initial bytes
+    static final byte[] initialBytes = {41, 54, 99};
+
+    // The sequence of terminating bytes
+    static final byte[] terminatingBytes = {34, 36, 40};
+
     public ByteBuffer getSerializedNode()
     {
-        // The sequence of initial bytes
-        byte[] initialBytes = {10, 10, 10};
 
-        // The sequence of terminating bytes
-        byte[] terminatingBytes = {1, 1, 1};
 
         // Convert the word value to a byte array
         byte[] valueBytes = value.getBytes(DEFAULT_CHARSET);
@@ -73,7 +75,8 @@ public final class WordNode
         for (int i = 0; i < 3; i++)
         {
             byte b = buffer.get();
-            if (b != 10) throw new InvalidByteSequenceException("The byte sequence of the node is invalid.");
+            if (b != initialBytes[i])
+                throw new InvalidByteSequenceException("The byte sequence of the node is invalid.");
         }
 
         int lengthOfValue = buffer.getInt();
@@ -86,7 +89,8 @@ public final class WordNode
         for (int i = 0; i < 3; i++)
         {
             byte b = buffer.get();
-            if (b != 1) throw new InvalidByteSequenceException("The byte sequence of the node is invalid.");
+            if (b != terminatingBytes[i])
+                throw new InvalidByteSequenceException("The byte sequence of the node is invalid.");
         }
 
         String valueStr = new String(rawValueBytes, DEFAULT_CHARSET);

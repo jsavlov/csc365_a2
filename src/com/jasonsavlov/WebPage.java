@@ -10,6 +10,7 @@ public class WebPage implements Serializable
     private transient String pageBodyText;
     private transient List<WebPage> listOfLinks;
     private long lastModifiedTime = 0L;
+    private transient long newModifiedTime = 0L;
     private transient JSBTree mainTree;
 
 

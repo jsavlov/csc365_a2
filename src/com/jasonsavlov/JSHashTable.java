@@ -3,7 +3,9 @@ package com.jasonsavlov;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+
 
 /**
  * Created by jason on 2/23/16.
@@ -16,6 +18,8 @@ public class JSHashTable implements Serializable
     // Instance variables
     private volatile int entry_count = 0;
     private volatile int bucket_count = 0;
+
+    public boolean has_modifications = false;
 
     // buckets for Nodes
     private Node[] buckets;
@@ -128,6 +132,28 @@ public class JSHashTable implements Serializable
         this.bucket_count = newSize;
 
         return newSize;
+    }
+
+    public synchronized List<WebPage> getTableAsList()
+    {
+        List<WebPage> listToReturn = new ArrayList<>();
+
+        for (Node workingNode : buckets)
+        {
+            Node currentNode = workingNode;
+
+            if (workingNode == null) {
+                continue;
+            }
+
+            do {
+                WebPage wp = currentNode.value;
+                listToReturn.add(wp);
+            } while ((currentNode = workingNode.next) != null);
+        }
+
+        return listToReturn;
+
     }
 
 }
