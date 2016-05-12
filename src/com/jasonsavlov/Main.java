@@ -37,7 +37,7 @@ public class Main
 
         final boolean[] page_modifications = {false};
 
-        Map<String, JSBTree> savedTrees;
+        Map<String, JSBTree> savedTrees = null;
 
         if (btreeFile.exists()) {
             try {
@@ -91,10 +91,14 @@ public class Main
                 if (page_modifications[0]) {
                     // Pages have been modified, so reload them
                     System.out.println("We have page modifications");
-                    for (WebPage page : urlHashTable.getTableAsList())
-                    {
-                        downloaderThreads.add(new PageDownloader(page));
+                    for (String s : savedTrees.keySet()) {
+                        WebPage wp = new WebPage(s);
+                        rootUrlList.add(wp);
+                        downloaderThreads.add(new PageDownloader(wp));
                     }
+
+                } else {
+
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -153,6 +157,7 @@ public class Main
                     // operation. handle it accordingly
                     System.out.println("mainDownloadPool timed out. Timeout set to " + DOWNLOAD_THREAD_TIMEOUT + " " + DOWNLOAD_THREAD_TIMEOUT_UNIT);
                     mainDownloadPool.shutdownNow();
+                    checkPagesThreadPool.shutdownNow();
                 }
 
             } catch (InterruptedException e) {
@@ -203,7 +208,6 @@ public class Main
                 System.out.println("finalizeHashTableThread complete");
                 finalizeBTreeThread.join();
                 System.out.println("finalizeBTreeThread complete");
-                checkPagesThreadPool.shutdownNow();
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
             }
