@@ -90,6 +90,7 @@ public class Main
 
                 if (page_modifications[0]) {
                     // Pages have been modified, so reload them
+                    System.out.println("We have page modifications");
                     for (WebPage page : urlHashTable.getTableAsList())
                     {
                         downloaderThreads.add(new PageDownloader(page));
@@ -161,54 +162,54 @@ public class Main
             System.out.println("Nothing to download!");
         }
 
-
-        Thread finalizeBTreeThread = new Thread(() -> {
-            System.out.println("finalizeBTreeThread started");
-            try {
-                OutputStream file = null;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutdown hook started");
+            Thread finalizeBTreeThread = new Thread(() -> {
+                System.out.println("finalizeBTreeThread started");
                 try {
-                    file = new FileOutputStream(btreeFile);
-                } catch (FileNotFoundException e) {
+                    OutputStream file = null;
+                    try {
+                        file = new FileOutputStream(btreeFile);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                    OutputStream buffer = new BufferedOutputStream(file);
+                    final ByteArrayOutputStream btOutputStream = new ByteArrayOutputStream();
+                    JSBTree.serializeBTrees(rootUrlList, btreeFile);
+                    //btOutputStream.writeTo(buffer);
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
-                OutputStream buffer = new BufferedOutputStream(file);
-                final ByteArrayOutputStream btOutputStream = new ByteArrayOutputStream();
-                JSBTree.serializeBTrees(rootUrlList, btreeFile);
-                //btOutputStream.writeTo(buffer);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+            });
 
-        Thread finalizeHashTableThread = new Thread(() -> {
-            System.out.println("finalizeHashTableThread started");
-            try (
-                    OutputStream file = new FileOutputStream(cacheFile);
-                    OutputStream buffer = new BufferedOutputStream(file);
-                    ObjectOutput output = new ObjectOutputStream(buffer);
-            ) {
-                output.writeObject(urlHashTable);
-            } catch(IOException ex) {
+            Thread finalizeHashTableThread = new Thread(() -> {
+                System.out.println("finalizeHashTableThread started");
+                try (
+                        OutputStream file = new FileOutputStream(cacheFile);
+                        OutputStream buffer = new BufferedOutputStream(file);
+                        ObjectOutput output = new ObjectOutputStream(buffer);
+                ) {
+                    output.writeObject(urlHashTable);
+                } catch(IOException ex) {
+                    ex.printStackTrace();
+                }
+            });
+
+            finalizeBTreeThread.start();
+            finalizeHashTableThread.start();
+
+            try {
+                finalizeHashTableThread.join();
+                System.out.println("finalizeHashTableThread complete");
+                finalizeBTreeThread.join();
+                System.out.println("finalizeBTreeThread complete");
+                checkPagesThreadPool.shutdownNow();
+            } catch (InterruptedException ex) {
                 ex.printStackTrace();
             }
-        });
 
-        finalizeBTreeThread.start();
-        finalizeHashTableThread.start();
+            System.out.println("Program complete");
+        }));
 
-        try {
-            finalizeHashTableThread.join();
-            System.out.println("finalizeHashTableThread complete");
-            finalizeBTreeThread.join();
-            System.out.println("finalizeBTreeThread complete");
-            checkPagesThreadPool.shutdownNow();
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
-
-
-
-
-        System.out.println("Program complete");
     }
 }
