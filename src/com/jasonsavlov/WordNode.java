@@ -1,5 +1,7 @@
 package com.jasonsavlov;
 
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -84,7 +86,15 @@ public final class WordNode
         byte[] rawValueBytes = new byte[lengthOfValue];
         buffer.get(rawValueBytes);
 
-        int frequency = buffer.getInt();
+        int frequency;
+
+        try {
+            frequency = buffer.getInt();
+        } catch (BufferUnderflowException ex) {
+            System.out.println("Buffer error");
+            return null;
+        }
+
 
         for (int i = 0; i < 3; i++)
         {

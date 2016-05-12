@@ -243,6 +243,9 @@ public class JSBTree
     public ByteArrayOutputStream serializeTree()
     {
         ForkJoinPool serializePool = new ForkJoinPool();
+        for (int i = 0; i < serializePool.getParallelism(); i++) {
+            serializePool.getFactory().newThread(serializePool).setName("Serialize-Tree-Worker-" + (i+1));
+        }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         SerializeTreeTask rootTask = new SerializeTreeTask(this.root, out);
@@ -559,6 +562,9 @@ public class JSBTree
         public void run()
         {
             WordNode workingNode = WordNode.nodeFromBytes(mainBuffer);
+
+            if (workingNode == null) return;
+
             String keyVal = workingNode.value;
             mainTree.put(keyVal, workingNode);
         }

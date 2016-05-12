@@ -41,7 +41,9 @@ public class Main
 
         if (btreeFile.exists()) {
             try {
+                System.out.println("Generating trees from file...");
                 savedTrees = JSBTree.generateTreesFromFile(btreeFile);
+                System.out.println("Trees generated!");
             } catch (EOFException ex) {
                 ex.printStackTrace();
             } catch (IOException e) {
@@ -199,6 +201,7 @@ public class Main
             System.out.println("finalizeHashTableThread complete");
             finalizeBTreeThread.join();
             System.out.println("finalizeBTreeThread complete");
+            checkPagesThreadPool.shutdownNow();
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }

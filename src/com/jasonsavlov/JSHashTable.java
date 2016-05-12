@@ -149,7 +149,7 @@ public class JSHashTable implements Serializable
             do {
                 WebPage wp = currentNode.value;
                 listToReturn.add(wp);
-            } while ((currentNode = workingNode.next) != null);
+            } while ((currentNode = currentNode.next) != null);
         }
 
         return listToReturn;
