@@ -69,7 +69,7 @@ public final class WordNode
         return bufferToReturn;
     }
 
-    public static WordNode nodeFromBytes(ByteBuffer buffer)
+    public static WordNode nodeFromBytes(final ByteBuffer buffer)
     {
 
         buffer.rewind();
@@ -116,6 +116,8 @@ public final class WordNode
             super(msg);
         }
     }
+
+
 
     @Override
     public boolean equals(Object obj)

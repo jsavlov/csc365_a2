@@ -13,11 +13,12 @@ import java.util.concurrent.*;
 public class Main
 {
     public static final int NUMBER_OF_THREADS = Runtime.getRuntime().availableProcessors() * 2;
-    static final ExecutorService mainDownloadPool = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+    static final ExecutorService mainDownloadPool = Executors.newFixedThreadPool(NUMBER_OF_THREADS, new JSThreadFactory("mainDownload"));
     static JSHashTable urlHashTable = new JSHashTable();
 
     // Thread timeout in seconds
     private static final long DOWNLOAD_THREAD_TIMEOUT = 30L;
+    private static final long CHECK_URL_THREAD_TIMEOUT = 60L;
     private static final TimeUnit DOWNLOAD_THREAD_TIMEOUT_UNIT = TimeUnit.SECONDS;
 
     public static void main(String[] args) {
@@ -30,7 +31,7 @@ public class Main
         File cacheFile = new File(cacheFilePath);
         File btreeFile = new File(btreeFilePath);
 
-        ExecutorService checkPagesThreadPool = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+        ExecutorService checkPagesThreadPool = Executors.newFixedThreadPool(NUMBER_OF_THREADS, new JSThreadFactory("checkPage"));
 
         List<WebPage> rootUrlList = new ArrayList<WebPage>();
         List<PageDownloader> downloaderThreads = new ArrayList<PageDownloader>();
@@ -65,32 +66,47 @@ public class Main
                 urlHashTable = (JSHashTable) input.readObject();
                 List<Future> futures = new ArrayList<>();
 
+                int threadNumber = 0;
                 for (WebPage workingPage : urlHashTable.getTableAsList())
                 {
-                    futures.add(checkPagesThreadPool.submit((Runnable) () -> {
+                    Thread t = new Thread( () -> {
                         try {
                             URL url = new URL(workingPage.getPageURL());
                             HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                            con.setRequestMethod("GET");
+                            con.setReadTimeout(30 * 1000);
+                            con.connect();
                             long last_modified = con.getLastModified();
                             if (workingPage.getLastModifiedTime() != last_modified) {
                                 page_modifications[0] = true;
                             }
+                            con.disconnect();
                         } catch (MalformedURLException e) {
                             e.printStackTrace();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
 
-                    }));
+                    });
+                    t.setName("URL_check_" + (++threadNumber));
+                    checkPagesThreadPool.execute(t);
                 }
 
+                if(!checkPagesThreadPool.awaitTermination(CHECK_URL_THREAD_TIMEOUT, TimeUnit.SECONDS)) {
+                    System.out.println("Check URL thread pool time out. Time out set to " + CHECK_URL_THREAD_TIMEOUT + " " + TimeUnit.SECONDS.name());
+                    checkPagesThreadPool.shutdownNow();
+                }
+
+                /*
                 for (Future f : futures) {
                     f.get();
                 }
+                */
 
                 if (page_modifications[0]) {
                     // Pages have been modified, so reload them
                     System.out.println("We have page modifications");
+                    urlHashTable = new JSHashTable();
                     for (String s : savedTrees.keySet()) {
                         WebPage wp = new WebPage(s);
                         rootUrlList.add(wp);
@@ -105,8 +121,6 @@ public class Main
             } catch (ClassNotFoundException ex) {
                 ex.printStackTrace();
             } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
                 e.printStackTrace();
             }
         }
@@ -147,7 +161,7 @@ public class Main
 
         if (downloaderThreads.size() > 0) {
             for (PageDownloader pd : downloaderThreads) {
-                mainDownloadPool.submit(pd);
+                mainDownloadPool.execute(pd);
             }
 
             try {

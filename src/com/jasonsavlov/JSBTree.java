@@ -3,6 +3,7 @@ package com.jasonsavlov;
 import com.sun.istack.internal.NotNull;
 
 import java.io.*;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
@@ -364,7 +365,7 @@ public class JSBTree
         DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(data));
 
 
-        ExecutorService pool = Executors.newFixedThreadPool(Main.NUMBER_OF_THREADS);
+        ExecutorService pool = Executors.newFixedThreadPool(Main.NUMBER_OF_THREADS, new JSThreadFactory("treeFromData"));
         //ForkJoinPool pool = new ForkJoinPool();
         List<Future> futureList = new ArrayList<>();
 
@@ -387,7 +388,6 @@ public class JSBTree
                 size_cnt += 3;
             }
             //dataIn.reset();
-
 
             /*
             dataIn.read(initialByteCheck);
@@ -436,6 +436,8 @@ public class JSBTree
                 e.printStackTrace();
             }
         }
+
+        pool.shutdown();
 
 
         return tree;
