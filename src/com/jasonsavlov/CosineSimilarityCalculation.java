@@ -19,18 +19,23 @@ public class CosineSimilarityCalculation implements Callable<CosineSimilarityCal
         List<Integer> listA = new ArrayList<>(), listB = new ArrayList<>();
         List<WordNode> wordsFromSource = sourcePage.getMainTree().treeToList();
 
+        int pos = 0;
         for (WordNode wn : wordsFromSource)
         {
-            int srcWordFreq = wn.frequency;
-            int qWordFreq = 0;
+            try {
+                int srcWordFreq = wn.frequency;
+                int qWordFreq = 0;
 
-            WordNode qn = queryPage.getMainTree().get(wn.value);
-            if (qn != null)
-            {
-                qWordFreq = qn.frequency;
+                WordNode qn = queryPage.getMainTree().get(wn.value);
+                if (qn != null) {
+                    qWordFreq = qn.frequency;
+                }
+                listA.add(srcWordFreq);
+                listB.add(qWordFreq);
+                pos++;
+            } catch (NullPointerException ex) {
+                continue;
             }
-            listA.add(srcWordFreq);
-            listB.add(qWordFreq);
         }
 
         int dotProduct = calculateDotProduct(listA, listB);

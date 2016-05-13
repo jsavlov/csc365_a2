@@ -13,10 +13,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.RejectedExecutionException;
 
 public class PageDownloader implements Runnable
 {
     private final WebPage mainPage;
+    DownloadActionListener listener;
 
     private static final String DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
 
@@ -100,10 +102,18 @@ public class PageDownloader implements Runnable
                 if (Main.urlHashTable.contains(wp.getPageURL())) {
                     continue;
                 }
-                Main.mainDownloadPool.submit(new PageDownloader(wp));
+                try {
+                    Main.mainDownloadPool.submit(new PageDownloader(wp));
+                } catch(RejectedExecutionException ex) {
+                    new Thread(new PageDownloader(wp), "comparison_downlaod");
+                }
             }
 
             System.out.println("Page " + mainPage.getPageURL() + ": " + Long.toString(mainPage.getLastModifiedTime()));
+
+            if (listener != null) {
+                listener.finishedDownloadingContent(this.mainPage);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -112,6 +122,12 @@ public class PageDownloader implements Runnable
     public PageDownloader(WebPage page)
     {
         this.mainPage = page;
+    }
+
+    public PageDownloader(WebPage page, DownloadActionListener listener)
+    {
+        this.mainPage = page;
+        this.listener = listener;
     }
 
 }
